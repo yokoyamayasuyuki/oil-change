@@ -157,6 +157,7 @@ textarea.ef{resize:vertical;line-height:1.6;min-height:64px;}
   <button class="tab"    id="tab-history">📋<br>履歴</button>
   <button class="tab"    id="tab-calendar">📅<br>カレンダー</button>
   <button class="tab"    id="tab-insurance">🛡<br>保険</button>
+  <button class="tab"    id="tab-settings">⚙️<br>設定</button>
 </div>
 
 <!-- HOME -->
@@ -394,6 +395,64 @@ textarea.ef{resize:vertical;line-height:1.6;min-height:64px;}
   <div id="evlist"></div>
 </div>
 
+<!-- SETTINGS -->
+<div class="pg" id="pg-settings">
+  <div class="pg-title">⚙️ 設定</div>
+
+  <!-- バックアップ -->
+  <div class="cc" style="margin-bottom:14px;">
+    <div class="cc-bar" style="background:linear-gradient(90deg,var(--a3),#34d399);"></div>
+    <div class="cc-head">
+      <div class="cc-ico" style="background:rgba(16,185,129,.15);">💾</div>
+      <div style="flex:1">
+        <div class="cc-nm">データバックアップ</div>
+        <div class="cc-md">現在のデータをファイルに保存</div>
+      </div>
+    </div>
+    <div class="cc-body">
+      <div style="font-size:10px;color:var(--t2);margin-bottom:10px;line-height:1.6;">
+        全データ（マイカー・履歴・保険）をJSONファイルとして端末に保存します。<br>
+        新しいアプリに更新した際に復元できます。
+      </div>
+      <div class="brow">
+        <button class="btn" id="btn-export" style="background:linear-gradient(135deg,var(--a3),#059669);color:#fff;">
+          📥 データをバックアップ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 復元 -->
+  <div class="cc" style="margin-bottom:14px;">
+    <div class="cc-bar" style="background:linear-gradient(90deg,var(--a2),#818cf8);"></div>
+    <div class="cc-head">
+      <div class="cc-ico" style="background:rgba(59,130,246,.15);">📂</div>
+      <div style="flex:1">
+        <div class="cc-nm">データ復元</div>
+        <div class="cc-md">バックアップファイルから復元</div>
+      </div>
+    </div>
+    <div class="cc-body">
+      <div style="font-size:10px;color:var(--t2);margin-bottom:10px;line-height:1.6;">
+        バックアップしたJSONファイルを選択すると、<br>
+        全データが復元されます。現在のデータは上書きされます。
+      </div>
+      <div class="brow">
+        <label class="btn" style="background:linear-gradient(135deg,var(--a2),#6366f1);color:#fff;text-align:center;cursor:pointer;">
+          📤 ファイルから復元
+          <input type="file" id="inp-import" accept=".json" style="display:none;">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注意 -->
+  <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px;font-size:10px;color:var(--t2);line-height:1.7;">
+    ⚠️ 復元するとすべての現在データが上書きされます。<br>
+    復元前に必ずバックアップを取ってください。
+  </div>
+</div>
+
 <!-- INSURANCE -->
 <div class="pg" id="pg-insurance">
   <div class="pg-title">🛡 自動車保険</div>
@@ -499,10 +558,51 @@ try {
     var p = JSON.parse(raw);
     if (p.cars)    S.cars    = p.cars;
     if (p.records) S.records = p.records;
+    if (p.ins)     S.ins     = p.ins;
     S.cars.forEach(function(c){ if (!c.memo) c.memo = ''; });
   }
 } catch(e) {}
 function save(){ try{ localStorage.setItem('ot9', JSON.stringify(S)); }catch(e){} }
+
+// ── SETTINGS: BACKUP / RESTORE ──
+function exportData(){
+  var data = JSON.stringify(S, null, 2);
+  var blob = new Blob([data], {type:'application/json'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  var now  = new Date();
+  var ts   = now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate();
+  a.href     = url;
+  a.download = 'oiltrack-backup-'+ts+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('✅ バックアップしました');
+}
+
+function importData(file){
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var p = JSON.parse(e.target.result);
+      if(!p.cars || !p.records){ toast('❌ 無効なファイルです'); return; }
+      if(!confirm('現在のデータをすべて上書きしますか？')) return;
+      if(p.cars)    S.cars    = p.cars;
+      if(p.records) S.records = p.records;
+      if(p.ins)     S.ins     = p.ins;
+      save();
+      syncNames();
+      loadCardForm(1); loadCardForm(2);
+      loadInsurance();
+      updateProgress(1); updateProgress(2);
+      renderAlerts(); renderHist(); renderCal();
+      toast('✅ データを復元しました！');
+    } catch(err) {
+      toast('❌ ファイルの読み込みに失敗しました');
+    }
+  };
+  reader.readAsText(file);
+}
 
 // ── INSURANCE ──
 function loadInsData(){ return S.ins || (S.ins={}); }
@@ -578,8 +678,11 @@ on('tab-edit',    function(){ goTab('edit'); });
 on('tab-history', function(){ goTab('history'); });
 on('tab-calendar',function(){ goTab('calendar'); });
 on('tab-insurance',function(){ goTab('insurance'); });
+on('tab-settings', function(){ goTab('settings'); });
 on('ins-sv1', function(){ saveIns(1); });
 on('ins-sv2', function(){ saveIns(2); });
+on('btn-export', function(){ exportData(); });
+document.getElementById('inp-import').addEventListener('change', function(){ importData(this.files[0]); this.value=''; });
 
 on('sv1', function(){ saveCar(1); });
 on('sv2', function(){ saveCar(2); });
@@ -621,7 +724,7 @@ renderCal();
 
 // ── TABS ──
 function goTab(t){
-  ['home','edit','history','calendar','insurance'].forEach(function(x){
+  ['home','edit','history','calendar','insurance','settings'].forEach(function(x){
     document.getElementById('pg-'+x).classList.toggle('on', x===t);
     document.getElementById('tab-'+x).classList.toggle('on', x===t);
   });
