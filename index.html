@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>オイル交換管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0e1a;--card:#1a2235;--bd:#2a3a55;--a1:#f97316;--a2:#3b82f6;--a3:#10b981;--warn:#ef4444;--t1:#e2e8f0;--t2:#94a3b8;--t3:#64748b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--t1);max-width:430px;margin:0 auto;min-height:100vh;}
+
+.hdr{background:linear-gradient(135deg,#0f172a,#1e1b4b);padding:12px 15px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;letter-spacing:2px;}
+.logo span{color:var(--a1);}
+.today{font-size:10px;color:var(--t2);}
+
+.tabs{display:flex;background:linear-gradient(135deg,#0f172a,#1e1b4b);border-bottom:1px solid var(--bd);}
+.tab{flex:1;padding:9px 2px;text-align:center;font-size:10px;border:none;background:transparent;color:var(--t3);border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;}
+.tab.on{color:var(--a1);border-bottom-color:var(--a1);font-weight:700;}
+
+.pg{display:none;padding:12px 12px 80px;}
+.pg.on{display:block;}
+
+/* ── CAR CARD ── */
+.cc{background:var(--card);border-radius:12px;border:1px solid var(--bd);margin-bottom:14px;overflow:hidden;}
+.cc-bar{height:3px;}
+.c1 .cc-bar{background:linear-gradient(90deg,var(--a1),#fbbf24);}
+.c2 .cc-bar{background:linear-gradient(90deg,var(--a2),#818cf8);}
+.cc-head{display:flex;align-items:center;padding:10px 13px;gap:9px;}
+.cc-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.c1 .cc-ico{background:rgba(249,115,22,.15);}
+.c2 .cc-ico{background:rgba(59,130,246,.15);}
+.cc-nm{font-size:13px;font-weight:700;}
+.cc-md{font-size:10px;color:var(--t2);}
+.sbadge{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:600;white-space:nowrap;margin-left:auto;}
+.sb-ok  {background:rgba(16,185,129,.15);color:var(--a3);border:1px solid rgba(16,185,129,.3);}
+.sb-warn{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);}
+.sb-due {background:rgba(239,68,68,.15);color:var(--warn);border:1px solid rgba(239,68,68,.3);}
+
+.cc-body{padding:0 11px 12px;}
+
+/* ── FIELD GRID ── */
+/* 各セルがラベル＋入力欄を兼ねる */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+.fcell{background:rgba(255,255,255,.03);border:1.5px solid var(--bd);border-radius:9px;padding:8px 10px;transition:border-color .15s;cursor:pointer;}
+.fcell:focus-within{border-color:var(--a1);background:rgba(249,115,22,.04);}
+.fc-lb{font-size:9px;color:var(--t3);margin-bottom:3px;pointer-events:none;user-select:none;}
+.fc-inp{width:100%;background:transparent;border:none;color:var(--t1);font-size:13px;font-weight:600;font-family:inherit;padding:0;}
+.fc-inp:focus{outline:none;}
+.fc-inp::placeholder{color:var(--t3);font-weight:400;font-size:12px;}
+input[type=date].fc-inp{font-size:13px;min-height:28px;display:block;color:var(--t1);}
+input[type=number].fc-inp{font-size:13px;}
+input[type=date].fc-inp::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.6;cursor:pointer;padding:0;margin:0;}
+
+/* ── MEMO CELLS ── */
+.memo-cell{border-radius:9px;padding:9px 11px;margin-bottom:8px;border:1.5px solid;}
+.memo-cell:focus-within{border-color:var(--a1) !important;}
+.memo-cell .fc-lb{margin-bottom:4px;}
+.memo-cell textarea{width:100%;background:transparent;border:none;color:var(--t1);font-size:12px;font-family:inherit;padding:0;resize:none;line-height:1.55;min-height:44px;}
+.memo-cell textarea:focus{outline:none;}
+.memo-cell textarea::placeholder{color:var(--t3);}
+
+.recmemo{background:rgba(59,130,246,.04);border-color:rgba(59,130,246,.25);}
+.recmemo .fc-lb{color:var(--a2);}
+.hmemo{background:rgba(249,115,22,.04);border-color:rgba(249,115,22,.28) !important;border-style:dashed !important;}
+.hmemo .fc-lb{color:var(--a1);}
+
+/* ── PROGRESS ── */
+.prog{margin-bottom:9px;}
+.prog-top{display:flex;justify-content:space-between;font-size:9px;color:var(--t2);margin-bottom:3px;}
+.progbar{height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;}
+.progfill{height:100%;border-radius:3px;transition:width .5s;}
+.pf-ok  {background:linear-gradient(90deg,var(--a3),#34d399);}
+.pf-warn{background:linear-gradient(90deg,#f59e0b,#fbbf24);}
+.pf-due {background:linear-gradient(90deg,var(--warn),#f87171);}
+
+/* ── BUTTONS ── */
+.brow{display:flex;gap:7px;margin-top:2px;}
+.btn{flex:1;padding:9px 4px;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-save{background:linear-gradient(135deg,var(--a1),#ea580c);color:#fff;}
+.btn-cal {background:rgba(59,130,246,.15);color:var(--a2);border:1px solid rgba(59,130,246,.3);}
+
+.alert{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:9px;padding:8px 11px;margin-bottom:9px;font-size:10px;color:#fca5a5;line-height:1.5;}
+.alert strong{color:var(--warn);}
+
+/* ── EDIT TAB ── */
+.pg-title{font-size:15px;font-weight:700;margin-bottom:12px;}
+.car-sel{display:flex;gap:8px;margin-bottom:14px;}
+.csbtn{flex:1;padding:10px;border-radius:9px;border:2px solid var(--bd);background:var(--card);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.csbtn.on{border-color:var(--a1);color:var(--a1);background:rgba(249,115,22,.07);}
+.sec-lb{font-size:10px;font-weight:700;color:var(--t2);letter-spacing:.7px;text-transform:uppercase;margin-bottom:7px;padding-left:7px;border-left:3px solid var(--a1);}
+.esec{margin-bottom:13px;}
+.fg{margin-bottom:7px;}
+label{display:block;font-size:10px;color:var(--t2);margin-bottom:3px;}
+input[type=date].ef,input[type=number].ef,input[type=text].ef,textarea.ef{
+  width:100%;padding:9px 11px;background:rgba(255,255,255,.05);border:1.5px solid var(--bd);
+  border-radius:8px;color:var(--t1);font-size:13px;font-family:inherit;-webkit-appearance:none;appearance:none;}
+input.ef:focus,textarea.ef:focus{outline:none;border-color:var(--a1);}
+textarea.ef{resize:vertical;line-height:1.6;min-height:64px;}
+.save-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--a1),#ea580c);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.sbtn{padding:7px 10px;border-radius:7px;border:1px solid var(--bd);background:rgba(255,255,255,.05);color:var(--t1);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
+.sbtn.red{background:rgba(239,68,68,.08);color:var(--warn);border-color:rgba(239,68,68,.25);}
+.rset-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px;}
+.rset-grid .sbtn{font-size:10px;padding:6px 4px;text-align:center;}
+
+/* ── HISTORY ── */
+.hi{display:flex;align-items:flex-start;gap:8px;padding:10px 11px;background:var(--card);border:1px solid var(--bd);border-radius:10px;margin-bottom:6px;}
+.hi-ico{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;background:rgba(249,115,22,.1);flex-shrink:0;}
+.hbg{font-size:9px;padding:2px 5px;border-radius:4px;margin-bottom:2px;display:inline-block;}
+.hb1{background:rgba(249,115,22,.15);color:var(--a1);}
+.hb2{background:rgba(59,130,246,.15);color:var(--a2);}
+.hi-r{margin-left:auto;text-align:right;flex-shrink:0;}
+.hi-rbtn{font-size:9px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:inherit;border:1px solid;}
+
+/* ── CALENDAR ── */
+.cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cal-nav{width:30px;height:30px;border:1px solid var(--bd);background:var(--card);border-radius:6px;cursor:pointer;color:var(--t1);font-size:14px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cdow{text-align:center;font-size:9px;color:var(--t3);padding:3px 0;font-weight:600;}
+.cday{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10px;border-radius:6px;position:relative;}
+.cday.today{background:rgba(249,115,22,.15);color:var(--a1);font-weight:700;}
+.cday.hev::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;}
+.cday.ev1::after{background:var(--a1);}
+.cday.ev2::after{background:var(--a2);}
+.cday.ev12::after{background:linear-gradient(90deg,var(--a1),var(--a2));width:8px;}
+.cday.oth{color:var(--t3);}
+.evit{display:flex;align-items:center;gap:8px;padding:9px 11px;background:var(--card);border-radius:10px;margin-bottom:6px;border:1px solid var(--bd);}
+
+.elem-row{display:flex;align-items:center;gap:8px;background:rgba(16,185,129,.05);border:1.5px solid rgba(16,185,129,.2);border-radius:9px;padding:9px 11px;margin-bottom:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.elem-row:focus-within{border-color:var(--a3);}
+.elem-chk{width:20px;height:20px;accent-color:var(--a3);flex-shrink:0;cursor:pointer;}
+.elem-lbl{flex:1;}
+.elem-lbl .fc-lb{color:var(--a3);margin-bottom:1px;}
+.elem-lbl .fc-sub{font-size:10px;color:var(--t3);}
+.elem-badge{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;white-space:nowrap;}
+.elem-yes{background:rgba(16,185,129,.15);color:var(--a3);border:1px solid rgba(16,185,129,.3);}
+.elem-no {background:rgba(100,116,139,.12);color:var(--t3);border:1px solid rgba(100,116,139,.2);}
+/* History: exchange date list */
+.hi-dates{margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;}
+.hi-date-tag{font-size:9px;padding:2px 6px;background:rgba(249,115,22,.12);color:var(--a1);border-radius:4px;border:1px solid rgba(249,115,22,.2);}
+.btn-new{background:linear-gradient(135deg,var(--a3),#059669);color:#fff;}
+.toast{position:fixed;bottom:68px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--a3);color:#fff;padding:8px 16px;border-radius:20px;font-size:11px;font-weight:600;opacity:0;transition:all .25s;z-index:9999;pointer-events:none;white-space:nowrap;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">OIL<span>TRACK</span></div>
+  <div class="today" id="today"></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" id="tab-home">🚗<br>マイカー</button>
+  <button class="tab"    id="tab-edit">🔧<br>編集</button>
+  <button class="tab"    id="tab-history">📋<br>履歴</button>
+  <button class="tab"    id="tab-calendar">📅<br>カレンダー</button>
+  <button class="tab"    id="tab-insurance">🛡<br>保険</button>
+</div>
+
+<!-- HOME -->
+<div class="pg on" id="pg-home">
+  <div id="alerts"></div>
+
+  <!-- Car 1 -->
+  <div class="cc c1">
+    <div class="cc-bar"></div>
+    <div class="cc-head">
+      <div class="cc-ico">🚙</div>
+      <div style="flex:1">
+        <div class="cc-nm" id="nm1">サンバー</div>
+        <div class="cc-md" id="md1">スバル サンバー</div>
+      </div>
+      <div class="sbadge sb-warn" id="bd1">未記録</div>
+    </div>
+    <div class="cc-body">
+      <div class="fgrid">
+        <label class="fcell" for="i1-date">
+          <div class="fc-lb">📅 前回交換日</div>
+          <input class="fc-inp" type="date" id="i1-date">
+        </label>
+        <label class="fcell" for="i1-km">
+          <div class="fc-lb">🔢 前回走行距離 km</div>
+          <input class="fc-inp" type="number" id="i1-km" placeholder="45000">
+        </label>
+        <label class="fcell" for="i1-nextDate">
+          <div class="fc-lb">📅 次回予定日</div>
+          <input class="fc-inp" type="date" id="i1-nextDate">
+        </label>
+        <label class="fcell" for="i1-nextKm">
+          <div class="fc-lb">🔢 次回予定距離 km</div>
+          <input class="fc-inp" type="number" id="i1-nextKm" placeholder="50000">
+        </label>
+      </div>
+      <label class="fcell" for="i1-oil" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🛢 使用オイル</div>
+        <input class="fc-inp" type="text" id="i1-oil" placeholder="例: 5W-30 全合成油">
+      </label>
+      <label class="elem-row" id="er1">
+        <input class="elem-chk" type="checkbox" id="i1-elem">
+        <div class="elem-lbl">
+          <div class="fc-lb">🔩 オイルエレメント交換</div>
+          <div class="fc-sub">今回エレメントも交換した場合はチェック</div>
+        </div>
+        <span class="elem-badge elem-no" id="eb1">未交換</span>
+      </label>
+      <label class="fcell" for="i1-shop" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🏪 交換場所</div>
+        <input class="fc-inp" type="text" id="i1-shop" placeholder="例: オートバックス">
+      </label>
+      <div class="memo-cell recmemo" style="margin-bottom:8px;">
+        <div class="fc-lb">📋 記録メモ</div>
+        <textarea id="i1-memo" placeholder="オイル銘柄・気になる点など" rows="2"></textarea>
+      </div>
+      <div class="memo-cell hmemo" style="margin-bottom:9px;">
+        <div class="fc-lb">📝 ひとことメモ（独立）</div>
+        <textarea id="i1-hmemo" placeholder="自由にメモを入力..." rows="2"></textarea>
+      </div>
+      <div class="prog">
+        <div class="prog-top"><span>交換サイクル</span><span id="pp1">--</span></div>
+        <div class="progbar"><div class="progfill pf-ok" id="pb1" style="width:0%"></div></div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-new"  id="nw1">＋ 新規交換を記録</button>
+      </div>
+      <div class="brow" style="margin-top:6px;">
+        <button class="btn btn-save" id="sv1">💾 上書き保存</button>
+        <button class="btn btn-cal"  id="ic1">📅 カレンダー</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Car 2 -->
+  <div class="cc c2">
+    <div class="cc-bar"></div>
+    <div class="cc-head">
+      <div class="cc-ico">🚘</div>
+      <div style="flex:1">
+        <div class="cc-nm" id="nm2">レクサス</div>
+        <div class="cc-md" id="md2">LEXUS</div>
+      </div>
+      <div class="sbadge sb-warn" id="bd2">未記録</div>
+    </div>
+    <div class="cc-body">
+      <div class="fgrid">
+        <label class="fcell" for="i2-date">
+          <div class="fc-lb">📅 前回交換日</div>
+          <input class="fc-inp" type="date" id="i2-date">
+        </label>
+        <label class="fcell" for="i2-km">
+          <div class="fc-lb">🔢 前回走行距離 km</div>
+          <input class="fc-inp" type="number" id="i2-km" placeholder="45000">
+        </label>
+        <label class="fcell" for="i2-nextDate">
+          <div class="fc-lb">📅 次回予定日</div>
+          <input class="fc-inp" type="date" id="i2-nextDate">
+        </label>
+        <label class="fcell" for="i2-nextKm">
+          <div class="fc-lb">🔢 次回予定距離 km</div>
+          <input class="fc-inp" type="number" id="i2-nextKm" placeholder="50000">
+        </label>
+      </div>
+      <label class="fcell" for="i2-oil" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🛢 使用オイル</div>
+        <input class="fc-inp" type="text" id="i2-oil" placeholder="例: 5W-30 全合成油">
+      </label>
+      <label class="elem-row" id="er2">
+        <input class="elem-chk" type="checkbox" id="i2-elem">
+        <div class="elem-lbl">
+          <div class="fc-lb">🔩 オイルエレメント交換</div>
+          <div class="fc-sub">今回エレメントも交換した場合はチェック</div>
+        </div>
+        <span class="elem-badge elem-no" id="eb2">未交換</span>
+      </label>
+      <label class="fcell" for="i2-shop" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🏪 交換場所</div>
+        <input class="fc-inp" type="text" id="i2-shop" placeholder="例: オートバックス">
+      </label>
+      <div class="memo-cell recmemo" style="margin-bottom:8px;">
+        <div class="fc-lb">📋 記録メモ</div>
+        <textarea id="i2-memo" placeholder="オイル銘柄・気になる点など" rows="2"></textarea>
+      </div>
+      <div class="memo-cell hmemo" style="margin-bottom:9px;">
+        <div class="fc-lb">📝 ひとことメモ（独立）</div>
+        <textarea id="i2-hmemo" placeholder="自由にメモを入力..." rows="2"></textarea>
+      </div>
+      <div class="prog">
+        <div class="prog-top"><span>交換サイクル</span><span id="pp2">--</span></div>
+        <div class="progbar"><div class="progfill pf-ok" id="pb2" style="width:0%"></div></div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-new"  id="nw2">＋ 新規交換を記録</button>
+      </div>
+      <div class="brow" style="margin-top:6px;">
+        <button class="btn btn-save" id="sv2">💾 上書き保存</button>
+        <button class="btn btn-cal"  id="ic2">📅 カレンダー</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT -->
+<div class="pg" id="pg-edit">
+  <div class="pg-title">🔧 データを編集<span id="edit-hint" style="font-size:10px;color:var(--a2);font-weight:400;margin-left:8px;"></span></div>
+  <div class="car-sel">
+    <button class="csbtn on" id="ecar1">🚙 サンバー</button>
+    <button class="csbtn"    id="ecar2">🚘 レクサス</button>
+  </div>
+  <div class="esec">
+    <div class="sec-lb">車の情報</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+      <div class="fg"><label>車の名前</label><input type="text" class="ef" id="e-name"></div>
+      <div class="fg"><label>車種・型式</label><input type="text" class="ef" id="e-model"></div>
+    </div>
+  </div>
+  <div class="esec">
+    <div class="sec-lb">前回の交換</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+      <div class="fg"><label>交換日</label><input type="date" class="ef" id="e-date"></div>
+      <div class="fg"><label>走行距離 km</label><input type="number" class="ef" id="e-km"></div>
+    </div>
+    <div class="fg"><label>使用オイル</label><input type="text" class="ef" id="e-oil"></div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px;padding:9px 11px;background:rgba(16,185,129,.05);border:1.5px solid rgba(16,185,129,.2);border-radius:9px;">
+      <input type="checkbox" class="elem-chk" id="e-elem" style="margin:0;">
+      <label for="e-elem" style="font-size:12px;color:var(--a3);font-weight:600;cursor:pointer;margin:0;">🔩 オイルエレメント交換した</label>
+    </div>
+    <div class="fg"><label>交換場所</label><input type="text" class="ef" id="e-shop"></div>
+  </div>
+  <div class="esec">
+    <div class="sec-lb">次回の予定</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+      <div class="fg"><label>次回予定日</label><input type="date" class="ef" id="e-nextDate"></div>
+      <div class="fg"><label>次回予定距離 km</label><input type="number" class="ef" id="e-nextKm"></div>
+    </div>
+  </div>
+  <div class="esec">
+    <div class="sec-lb">記録メモ</div>
+    <div class="fg"><textarea class="ef" id="e-memo" rows="3"></textarea></div>
+  </div>
+  <button class="save-btn" id="esave">💾 保存する</button>
+  <div style="margin-top:16px;border-top:1px solid var(--bd);padding-top:13px;">
+    <div style="font-size:10px;font-weight:700;color:var(--t2);margin-bottom:8px;">🗑️ 項目リセット</div>
+    <div class="rset-grid">
+      <button class="sbtn red" id="rf-date">前回交換日</button>
+      <button class="sbtn red" id="rf-km">走行距離</button>
+      <button class="sbtn red" id="rf-oil">オイル</button>
+      <button class="sbtn red" id="rf-elem">エレメント</button>
+      <button class="sbtn red" id="rf-shop">交換場所</button>
+      <button class="sbtn red" id="rf-nextDate">次回予定日</button>
+      <button class="sbtn red" id="rf-nextKm">次回距離</button>
+      <button class="sbtn red" id="rf-memo">メモ</button>
+    </div>
+    <button class="sbtn red" style="width:100%;padding:9px;" id="resetall">⚠️ すべてリセット</button>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="pg" id="pg-history">
+  <div class="pg-title">📋 交換履歴</div>
+  <div style="display:flex;gap:6px;margin-bottom:10px;">
+    <button class="sbtn" id="fa" style="font-size:10px;padding:5px 10px;">全て</button>
+    <button class="sbtn" id="f1" style="font-size:10px;padding:5px 10px;">🚙</button>
+    <button class="sbtn" id="f2" style="font-size:10px;padding:5px 10px;">🚘</button>
+  </div>
+  <div id="hlist"></div>
+</div>
+
+<!-- CALENDAR -->
+<div class="pg" id="pg-calendar">
+  <div class="pg-title">📅 カレンダー</div>
+  <div class="cc" style="padding:12px;margin-bottom:10px;">
+    <div class="cal-hd">
+      <button class="cal-nav" id="cal-prev">‹</button>
+      <div style="font-size:13px;font-weight:700;" id="cal-title"></div>
+      <button class="cal-nav" id="cal-next">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:10px;">
+    <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2);"><div style="width:7px;height:7px;border-radius:50%;background:var(--a1);"></div><span id="leg1">サンバー</span></div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2);"><div style="width:7px;height:7px;border-radius:50%;background:var(--a2);"></div><span id="leg2">レクサス</span></div>
+  </div>
+  <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.22);border-radius:11px;padding:12px;margin-bottom:12px;">
+    <div style="font-size:12px;font-weight:700;margin-bottom:4px;">📲 カレンダー連携</div>
+    <div style="font-size:10px;color:var(--t2);margin-bottom:10px;line-height:1.5;">次回交換予定をiPhone・Googleカレンダーに追加できます。</div>
+    <div style="display:flex;gap:6px;">
+      <button class="sbtn" style="flex:1;color:var(--a2);border-color:rgba(59,130,246,.3);" id="ics1">🚙</button>
+      <button class="sbtn" style="flex:1;color:var(--a2);border-color:rgba(59,130,246,.3);" id="ics2">🚘</button>
+      <button class="sbtn" style="flex:1;color:var(--a2);border-color:rgba(59,130,246,.3);" id="icsall">📅 両方</button>
+    </div>
+  </div>
+  <div style="font-size:10px;font-weight:700;color:var(--t2);margin-bottom:8px;">今月の予定</div>
+  <div id="evlist"></div>
+</div>
+
+<!-- INSURANCE -->
+<div class="pg" id="pg-insurance">
+  <div class="pg-title">🛡 自動車保険</div>
+
+  <!-- Car1 保険 -->
+  <div class="cc c1" style="margin-bottom:14px;">
+    <div class="cc-bar"></div>
+    <div class="cc-head">
+      <div class="cc-ico">🚙</div>
+      <div style="flex:1">
+        <div class="cc-nm" id="ins-nm1">サンバー</div>
+        <div class="cc-md" id="ins-md1">スバル サンバー</div>
+      </div>
+    </div>
+    <div class="cc-body">
+      <label class="fcell" for="ins1-company" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🏢 保険会社名</div>
+        <input class="fc-inp" type="text" id="ins1-company" placeholder="例: 東京海上日動">
+      </label>
+      <label class="fcell" for="ins1-accident" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🚨 事故受付センター</div>
+        <input class="fc-inp" type="tel" id="ins1-accident" placeholder="例: 0120-000-000">
+      </label>
+      <label class="fcell" for="ins1-road" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🚗 ロードサービス受付</div>
+        <input class="fc-inp" type="tel" id="ins1-road" placeholder="例: 0120-111-111">
+      </label>
+      <label class="fcell" for="ins1-cs" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">📞 カスタマーサービスセンター</div>
+        <input class="fc-inp" type="tel" id="ins1-cs" placeholder="例: 0120-222-222">
+      </label>
+      <div class="memo-cell recmemo" style="margin-bottom:8px;">
+        <div class="fc-lb">📋 メモ</div>
+        <textarea id="ins1-memo" placeholder="証券番号・等級・契約内容など" rows="2"></textarea>
+      </div>
+      <div class="brow">
+        <button class="btn btn-save" id="ins-sv1">💾 保存</button>
+      </div>
+      <!-- 電話ボタン -->
+      <div id="ins1-btns" style="margin-top:10px;display:none;">
+        <div style="font-size:9px;color:var(--t3);margin-bottom:6px;font-weight:600;">📲 ワンタップで電話</div>
+        <div style="display:flex;flex-direction:column;gap:6px;" id="ins1-call-btns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Car2 保険 -->
+  <div class="cc c2" style="margin-bottom:14px;">
+    <div class="cc-bar"></div>
+    <div class="cc-head">
+      <div class="cc-ico">🚘</div>
+      <div style="flex:1">
+        <div class="cc-nm" id="ins-nm2">レクサス</div>
+        <div class="cc-md" id="ins-md2">LEXUS</div>
+      </div>
+    </div>
+    <div class="cc-body">
+      <label class="fcell" for="ins2-company" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🏢 保険会社名</div>
+        <input class="fc-inp" type="text" id="ins2-company" placeholder="例: 損保ジャパン">
+      </label>
+      <label class="fcell" for="ins2-accident" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🚨 事故受付センター</div>
+        <input class="fc-inp" type="tel" id="ins2-accident" placeholder="例: 0120-000-000">
+      </label>
+      <label class="fcell" for="ins2-road" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">🚗 ロードサービス受付</div>
+        <input class="fc-inp" type="tel" id="ins2-road" placeholder="例: 0120-111-111">
+      </label>
+      <label class="fcell" for="ins2-cs" style="display:block;margin-bottom:8px;">
+        <div class="fc-lb">📞 カスタマーサービスセンター</div>
+        <input class="fc-inp" type="tel" id="ins2-cs" placeholder="例: 0120-222-222">
+      </label>
+      <div class="memo-cell recmemo" style="margin-bottom:8px;">
+        <div class="fc-lb">📋 メモ</div>
+        <textarea id="ins2-memo" placeholder="証券番号・等級・契約内容など" rows="2"></textarea>
+      </div>
+      <div class="brow">
+        <button class="btn btn-save" id="ins-sv2">💾 保存</button>
+      </div>
+      <div id="ins2-btns" style="margin-top:10px;display:none;">
+        <div style="font-size:9px;color:var(--t3);margin-bottom:6px;font-weight:600;">📲 ワンタップで電話</div>
+        <div style="display:flex;flex-direction:column;gap:6px;" id="ins2-call-btns"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+var S = {
+  cars: [
+    {id:1, name:'サンバー', model:'スバル サンバー', memo:''},
+    {id:2, name:'レクサス', model:'LEXUS',          memo:''}
+  ],
+  records: []
+};
+try {
+  var raw = localStorage.getItem('ot9');
+  if (raw) {
+    var p = JSON.parse(raw);
+    if (p.cars)    S.cars    = p.cars;
+    if (p.records) S.records = p.records;
+    S.cars.forEach(function(c){ if (!c.memo) c.memo = ''; });
+  }
+} catch(e) {}
+function save(){ try{ localStorage.setItem('ot9', JSON.stringify(S)); }catch(e){} }
+
+// ── INSURANCE ──
+function loadInsData(){ return S.ins || (S.ins={}); }
+function saveInsData(d){ S.ins=d; save(); }
+
+function loadInsurance(){
+  var d = loadInsData();
+  // 車名同期
+  [1,2].forEach(function(n){
+    var e1=document.getElementById('ins-nm'+n), e2=document.getElementById('ins-md'+n);
+    if(e1) e1.textContent = S.cars[n-1].name;
+    if(e2) e2.textContent = S.cars[n-1].model||'';
+    var ins = (d['car'+n])||{};
+    document.getElementById('ins'+n+'-company').value  = ins.company  ||'';
+    document.getElementById('ins'+n+'-accident').value = ins.accident ||'';
+    document.getElementById('ins'+n+'-road').value     = ins.road     ||'';
+    document.getElementById('ins'+n+'-cs').value       = ins.cs       ||'';
+    document.getElementById('ins'+n+'-memo').value     = ins.memo     ||'';
+    renderCallBtns(n, ins);
+  });
+}
+
+function getV(id){ var e=document.getElementById(id); return e ? e.value.trim() : ''; }
+
+function saveIns(n){
+  var d = loadInsData();
+  d['car'+n] = {
+    company:  getV('ins'+n+'-company'),
+    accident: getV('ins'+n+'-accident'),
+    road:     getV('ins'+n+'-road'),
+    cs:       getV('ins'+n+'-cs'),
+    memo:     getV('ins'+n+'-memo')
+  };
+  saveInsData(d);
+  renderCallBtns(n, d['car'+n]);
+  toast('✅ 保険情報を保存しました');
+}
+
+function renderCallBtns(n, ins){
+  var wrap  = document.getElementById('ins'+n+'-btns');
+  var inner = document.getElementById('ins'+n+'-call-btns');
+  if(!wrap||!inner) return;
+  var items = [
+    {label:'🚨 事故受付', tel: ins.accident},
+    {label:'🚗 ロードサービス', tel: ins.road},
+    {label:'📞 カスタマーサービス', tel: ins.cs}
+  ].filter(function(x){ return x.tel; });
+  if(!items.length){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  inner.innerHTML = items.map(function(x){
+    return '<a href="tel:'+x.tel+'" style="display:flex;align-items:center;justify-content:space-between;'+
+      'background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:9px;'+
+      'padding:10px 13px;text-decoration:none;color:var(--t1);">'+
+      '<span style="font-size:11px;font-weight:600;">'+x.label+'</span>'+
+      '<span style="font-size:13px;font-weight:700;color:var(--a3);">'+x.tel+'</span>'+
+      '</a>';
+  }).join('');
+}
+
+var eCarId = 1, hf = 'all', editingId = null;
+var calY = new Date().getFullYear(), calM = new Date().getMonth();
+
+// ── INIT ──
+(function(){
+  var n=new Date(), D=['日','月','火','水','木','金','土'];
+  document.getElementById('today').textContent = n.getFullYear()+'年'+(n.getMonth()+1)+'月'+n.getDate()+'日（'+D[n.getDay()]+'）';
+})();
+
+function on(id, fn){ document.getElementById(id).addEventListener('click', fn); }
+
+on('tab-home',    function(){ goTab('home'); });
+on('tab-edit',    function(){ goTab('edit'); });
+on('tab-history', function(){ goTab('history'); });
+on('tab-calendar',function(){ goTab('calendar'); });
+on('tab-insurance',function(){ goTab('insurance'); });
+on('ins-sv1', function(){ saveIns(1); });
+on('ins-sv2', function(){ saveIns(2); });
+
+on('sv1', function(){ saveCar(1); });
+on('sv2', function(){ saveCar(2); });
+on('nw1', function(){ newRec(1); });
+on('nw2', function(){ newRec(2); });
+on('ic1', function(){ doICS(1); });
+on('ic2', function(){ doICS(2); });
+
+on('ecar1',   function(){ selECar(1); });
+on('ecar2',   function(){ selECar(2); });
+on('esave',   saveEdit);
+on('resetall',resetAll);
+['date','km','oil','elem','shop','nextDate','nextKm','memo'].forEach(function(f){
+  on('rf-'+f, function(){ resetF(f); });
+});
+
+on('fa', function(){ filt('all'); });
+on('f1', function(){ filt('1'); });
+on('f2', function(){ filt('2'); });
+document.getElementById('i1-elem').addEventListener('change', function(){ updateElemBadge(1, this.checked); });
+document.getElementById('i2-elem').addEventListener('change', function(){ updateElemBadge(2, this.checked); });
+on('cal-prev', function(){ chgM(-1); });
+on('cal-next', function(){ chgM(1); });
+on('ics1',   function(){ doICS(1); });
+on('ics2',   function(){ doICS(2); });
+on('icsall', function(){ doICS('all'); });
+
+// populate & render
+syncNames();
+loadCardForm(1);
+loadCardForm(2);
+loadInsurance();
+updateProgress(1);
+updateProgress(2);
+renderAlerts();
+loadEditForm();
+renderHist();
+renderCal();
+
+// ── TABS ──
+function goTab(t){
+  ['home','edit','history','calendar','insurance'].forEach(function(x){
+    document.getElementById('pg-'+x).classList.toggle('on', x===t);
+    document.getElementById('tab-'+x).classList.toggle('on', x===t);
+  });
+  if (t==='home')     { refreshCardForm(1); refreshCardForm(2); }
+  if (t==='insurance') { loadInsurance(); }
+  if (t==='edit' && !editingId) loadEditForm();
+  if (t==='history')  renderHist();
+  if (t==='calendar') renderCal();
+}
+
+function syncNames(){
+  S.cars.forEach(function(c,i){
+    var n=i+1;
+    var e;
+    e=document.getElementById('nm'+n);   if(e) e.textContent=c.name;
+    e=document.getElementById('md'+n);   if(e) e.textContent=c.model||'';
+    e=document.getElementById('leg'+n);  if(e) e.textContent=c.name;
+    e=document.getElementById('ecar'+n); if(e) e.textContent=(n===1?'🚙':'🚘')+' '+c.name;
+  });
+}
+
+// ── CARD FORM ──
+function loadCardForm(n){
+  var rec = latestRec(n) || {};
+  // 前回交換日・距離 = 最新レコードのdate・km
+  document.getElementById('i'+n+'-date').value     = rec.date || '';
+  document.getElementById('i'+n+'-km').value       = rec.km   || '';
+  // 次回予定は空（新たに入力する）
+  document.getElementById('i'+n+'-nextDate').value = '';
+  document.getElementById('i'+n+'-nextKm').value   = '';
+  document.getElementById('i'+n+'-oil').value      = '';
+  document.getElementById('i'+n+'-elem').checked   = false;
+  updateElemBadge(n, false);
+  document.getElementById('i'+n+'-shop').value     = '';
+  document.getElementById('i'+n+'-memo').value     = '';
+  document.getElementById('i'+n+'-hmemo').value    = S.cars[n-1].memo || '';
+}
+function refreshCardForm(n){
+  var rec = latestRec(n) || {};
+  var d = S.cars[n-1].formDraft || {};
+  document.getElementById('i'+n+'-date').value     = rec.date        || '';
+  document.getElementById('i'+n+'-km').value       = rec.km          || '';
+  document.getElementById('i'+n+'-nextDate').value = d.nextDate      || '';
+  document.getElementById('i'+n+'-nextKm').value   = d.nextKm        || '';
+  document.getElementById('i'+n+'-oil').value      = d.oil           || '';
+  document.getElementById('i'+n+'-elem').checked   = d.elem          || false;
+  updateElemBadge(n, d.elem || false);
+  document.getElementById('i'+n+'-shop').value     = d.shop          || '';
+  document.getElementById('i'+n+'-memo').value     = d.memo          || '';
+  document.getElementById('i'+n+'-hmemo').value    = S.cars[n-1].memo|| '';
+}
+
+function saveCar(n){
+  var date     = document.getElementById('i'+n+'-date').value;
+  var km       = document.getElementById('i'+n+'-km').value;
+  var nextDate = document.getElementById('i'+n+'-nextDate').value;
+  var nextKm   = document.getElementById('i'+n+'-nextKm').value;
+  var oil      = document.getElementById('i'+n+'-oil').value;
+  var elem     = document.getElementById('i'+n+'-elem').checked;
+  var shop     = document.getElementById('i'+n+'-shop').value;
+  var memo     = document.getElementById('i'+n+'-memo').value;
+  var hmemo    = document.getElementById('i'+n+'-hmemo').value;
+
+  // ひとことメモを保存
+  S.cars[n-1].memo = hmemo;
+  // フォーム入力値をdraftとして保存（タブ切替後も復元できるように）
+  S.cars[n-1].formDraft = {nextDate:nextDate, nextKm:nextKm, oil:oil, elem:elem, shop:shop, memo:memo};
+
+  // 上書き保存：次回予定のみ更新。交換実績(date/km等)は変えない
+  var rec = latestRec(n);
+  var ex  = rec && S.records.find(function(r){ return r.id===rec.id; });
+  if (ex) {
+    ex.nextDate=nextDate; ex.nextKm=nextKm;
+  }
+  // レコードがない場合は下書きとして保持（履歴には追加しない）
+  if (!ex) {
+    S.cars[n-1].draft = {date:date, km:km, oil:oil, elem:elem, shop:shop, nextDate:nextDate, nextKm:nextKm, memo:memo};
+  }
+  save();
+  refreshCardForm(1); refreshCardForm(2);
+  loadEditForm();
+  updateProgress(1); updateProgress(2);
+  renderAlerts();
+  renderHist();
+  renderCal();
+  toast('✅ 保存しました！');
+}
+
+
+function newRec(n){
+  var hasRec = !!latestRec(n);
+  var date, km, nextDate, nextKm;
+  if (hasRec) {
+    // 2回目以降：nextDate欄=交換日、date欄=前回交換日（表示のみ）
+    date     = document.getElementById('i'+n+'-nextDate').value;
+    km       = document.getElementById('i'+n+'-nextKm').value;
+    nextDate = '';
+    nextKm   = '';
+  } else {
+    // 初回：date欄=交換日
+    date     = document.getElementById('i'+n+'-date').value;
+    km       = document.getElementById('i'+n+'-km').value;
+    nextDate = '';
+    nextKm   = '';
+  }
+  var oil      = document.getElementById('i'+n+'-oil').value;
+  var elem     = document.getElementById('i'+n+'-elem').checked;
+  var shop     = document.getElementById('i'+n+'-shop').value;
+  var memo     = document.getElementById('i'+n+'-memo').value;
+  var hmemo    = document.getElementById('i'+n+'-hmemo').value;
+
+  if (!date) { toast('❌ 次回予定日（交換日）を入力してください'); return; }
+
+  S.cars[n-1].memo      = hmemo;
+  S.cars[n-1].draft     = null;
+  S.cars[n-1].formDraft = null;
+
+  S.records.push({id:Date.now(), carId:n,
+    date:date, km:km, oil:oil, elem:elem, shop:shop,
+    nextDate:nextDate, nextKm:nextKm, memo:memo});
+
+  save();
+  loadCardForm(1); loadCardForm(2);
+  loadEditForm();
+  updateProgress(1); updateProgress(2);
+  renderAlerts(); renderHist(); renderCal();
+  toast('✅ ' + date + ' の交換を履歴に追加しました！');
+}
+
+function updateProgress(n){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var rec=latestRec(n);
+  var sc='ok', st='未記録', prog=0;
+  if (rec && rec.nextDate) {
+    var ld=new Date(rec.date), nd=new Date(rec.nextDate);
+    prog=Math.min(Math.max((today-ld)/(nd-ld)*100,0),100);
+    var dl=Math.ceil((nd-today)/86400000);
+    if (dl<=0)       { sc='due';  st='要交換！'; }
+    else if (dl<=30) { sc='warn'; st='あと'+dl+'日'; }
+    else             { sc='ok';   st='あと'+dl+'日'; }
+  } else if (rec) {
+    st='次回予定なし';
+  }
+  var b=document.getElementById('pb'+n), pp=document.getElementById('pp'+n);
+  if(b){ b.style.width=prog+'%'; b.className='progfill pf-'+sc; }
+  if(pp) pp.textContent=st;
+  var bd=document.getElementById('bd'+n);
+  if(bd){ bd.textContent=st; bd.className='sbadge sb-'+sc; }
+}
+
+function renderAlerts(){
+  var today=new Date(); today.setHours(0,0,0,0);
+  var html='';
+  S.cars.forEach(function(car,i){
+    var rec=latestRec(i+1);
+    if(rec&&rec.nextDate){
+      var nd=new Date(rec.nextDate);
+      if(Math.ceil((nd-today)/86400000)<=0)
+        html+='<div class="alert"><strong>'+car.name+'</strong>のオイル交換時期が過ぎています！</div>';
+    }
+  });
+  document.getElementById('alerts').innerHTML=html;
+}
+
+function latestRec(cid){
+  var rs=S.records.filter(function(r){return r.carId===cid;});
+  if(!rs.length) return null;
+  return rs.sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||b.id-a.id;})[0];
+}
+
+// ── EDIT TAB ──
+function selECar(n){
+  eCarId=n;
+  editingId=null;
+  var hint=document.getElementById('edit-hint'); if(hint) hint.textContent='';
+  [1,2].forEach(function(x){ document.getElementById('ecar'+x).classList.toggle('on',x===n); });
+  loadEditForm();
+}
+function loadEditForm(){
+  var car=S.cars[eCarId-1], rec=latestRec(eCarId)||{};
+  document.getElementById('e-name').value     = car.name;
+  document.getElementById('e-model').value    = car.model    ||'';
+  document.getElementById('e-date').value     = rec.date     ||'';
+  document.getElementById('e-km').value       = rec.km       ||'';
+  document.getElementById('e-oil').value      = rec.oil      ||'';
+  document.getElementById('e-elem').checked   = rec.elem     ||false;
+  document.getElementById('e-shop').value     = rec.shop     ||'';
+  document.getElementById('e-nextDate').value = rec.nextDate ||'';
+  document.getElementById('e-nextKm').value   = rec.nextKm   ||'';
+  document.getElementById('e-memo').value     = rec.memo     ||'';
+}
+function saveEdit(){
+  var car=S.cars[eCarId-1];
+  var nm=document.getElementById('e-name').value.trim();
+  if(nm) car.name=nm;
+  car.model=document.getElementById('e-model').value.trim();
+  var date=document.getElementById('e-date').value;
+  var km=document.getElementById('e-km').value;
+  var oil=document.getElementById('e-oil').value;
+  var elem=document.getElementById('e-elem').checked;
+  var shop=document.getElementById('e-shop').value;
+  var nextDate=document.getElementById('e-nextDate').value;
+  var nextKm=document.getElementById('e-nextKm').value;
+  var memo=document.getElementById('e-memo').value;
+  var ex = editingId
+    ? S.records.find(function(r){ return r.id===editingId; })
+    : (latestRec(eCarId) && S.records.find(function(r){ return r.id===latestRec(eCarId).id; }));
+  if(ex){
+    ex.date=date;ex.km=km;ex.oil=oil;ex.elem=elem;ex.shop=shop;ex.nextDate=nextDate;ex.nextKm=nextKm;ex.memo=memo;
+  } else if(date||km||oil||shop||nextDate||nextKm||memo){
+    S.records.push({id:Date.now(),carId:eCarId,date:date,km:km,oil:oil,elem:elem,shop:shop,nextDate:nextDate,nextKm:nextKm,memo:memo});
+  }
+  editingId=null;
+  save(); syncNames(); loadCardForm(1); loadCardForm(2); updateProgress(1); updateProgress(2); renderAlerts(); renderHist(); renderCal();
+  toast('✅ 保存しました！');
+}
+function resetF(field){
+  var lbl={date:'前回交換日',km:'走行距離',oil:'オイル',elem:'エレメント',shop:'交換場所',nextDate:'次回予定日',nextKm:'次回距離',memo:'メモ'};
+  if(!confirm('「'+lbl[field]+'」をリセットしますか？')) return;
+  document.getElementById('e-'+field).value='';
+  var rec=latestRec(eCarId), ex=rec&&S.records.find(function(r){return r.id===rec.id;});
+  if(ex){
+    if(field==='elem'){ ex[field]=false; document.getElementById('e-elem').checked=false; }
+    else ex[field]='';
+    save(); loadCardForm(1); loadCardForm(2); updateProgress(1); updateProgress(2); renderAlerts(); renderHist();
+  }
+  toast('🗑️ リセットしました');
+}
+function resetAll(){
+  if(!confirm(S.cars[eCarId-1].name+'のすべての記録をリセットしますか？')) return;
+  S.records=S.records.filter(function(r){return r.carId!==eCarId;});
+  S.cars[eCarId-1].memo='';
+  save(); syncNames(); loadCardForm(1); loadCardForm(2); loadEditForm(); updateProgress(1); updateProgress(2); renderAlerts(); renderHist(); renderCal();
+  toast('🗑️ リセットしました');
+}
+
+// ── HISTORY ──
+function filt(f){
+  hf=f;
+  ['all','1','2'].forEach(function(x){
+    var id=x==='all'?'fa':'f'+x, e=document.getElementById(id);
+    if(e){ e.style.color=x===f?'var(--a1)':''; e.style.borderColor=x===f?'var(--a1)':''; }
+  });
+  renderHist();
+}
+function renderHist(){
+  var el=document.getElementById('hlist');
+  var rs=S.records.slice().sort(function(a,b){return (b.date||'').localeCompare(a.date||'')||b.id-a.id;});
+  if(hf!=='all') rs=rs.filter(function(r){return r.carId===parseInt(hf);});
+  if(!rs.length){ el.innerHTML='<div style="text-align:center;padding:28px;color:var(--t3);font-size:12px;">📭 記録なし</div>'; return; }
+  el.innerHTML=rs.map(function(r){
+    var c=S.cars[r.carId-1];
+    return '<div class="hi">'+
+      '<div class="hi-ico">'+(r.carId===1?'🚙':'🚘')+'</div>'+
+      '<div style="flex:1;min-width:0;">'+
+        '<span class="hbg hb'+r.carId+'">'+esc(c.name)+'</span>'+
+        '<div style="font-size:12px;font-weight:700;color:var(--a1);">🔧 '+fmtD(r.date)+'</div>'+
+        '<div style="font-size:10px;color:var(--t2);margin-top:1px;">'+(r.km?'走行距離: '+Number(r.km).toLocaleString()+' km':'走行距離: --')+'</div>'+
+        (r.nextDate?'<div style="font-size:10px;color:var(--t2);">次回予定: '+fmtD(r.nextDate)+(r.nextKm?' / '+Number(r.nextKm).toLocaleString()+' km':'')+'</div>':'')+
+        (r.oil?'<div style="font-size:10px;color:var(--t3);">🛢 '+esc(r.oil)+'</div>':'')+
+        (r.elem?'<div style="font-size:10px;color:var(--a3);font-weight:600;">🔩 エレメント交換済み</div>':'')+
+        (r.shop?'<div style="font-size:10px;color:var(--t3);">🏪 '+esc(r.shop)+'</div>':'')+
+        (r.memo?'<div style="font-size:10px;color:var(--t3);margin-top:2px;">📝 '+esc(r.memo)+'</div>':'')+
+      '</div>'+
+      '<div class="hi-r">'+
+        '<div style="display:flex;gap:3px;margin-top:2px;">'+
+          '<button class="hi-rbtn" data-id="'+r.id+'" data-act="edit" style="color:var(--a2);border-color:rgba(59,130,246,.3);background:rgba(59,130,246,.08);">編集</button>'+
+          '<button class="hi-rbtn" data-id="'+r.id+'" data-act="del"  style="color:var(--warn);border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.08);">削除</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  el.querySelectorAll('.hi-rbtn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id=parseInt(this.dataset.id), act=this.dataset.act;
+      if(act==='edit') editHistRec(id); else delRec(id);
+    });
+  });
+}
+function editHistRec(id){
+  var r=S.records.find(function(x){return x.id===id;}); if(!r) return;
+  eCarId=r.carId;
+  [1,2].forEach(function(x){document.getElementById('ecar'+x).classList.toggle('on',x===r.carId);});
+  document.getElementById('e-name').value     = S.cars[r.carId-1].name;
+  document.getElementById('e-model').value    = S.cars[r.carId-1].model||'';
+  document.getElementById('e-date').value     = r.date||'';
+  document.getElementById('e-km').value       = r.km||'';
+  document.getElementById('e-oil').value      = r.oil||'';
+  document.getElementById('e-elem').checked   = r.elem||false;
+  document.getElementById('e-shop').value     = r.shop||'';
+  document.getElementById('e-nextDate').value = r.nextDate||'';
+  document.getElementById('e-nextKm').value   = r.nextKm||'';
+  document.getElementById('e-memo').value     = r.memo||'';
+  editingId = r.id;
+  var hint = document.getElementById('edit-hint');
+  if(hint) hint.textContent = '（'+fmtD(r.date)+'の記録を編集中）';
+  goTab('edit');
+}
+function delRec(id){
+  if(!confirm('この記録を削除しますか？')) return;
+  S.records=S.records.filter(function(r){return r.id!==id;});
+  save(); loadCardForm(1); loadCardForm(2); updateProgress(1); updateProgress(2); renderAlerts(); renderHist(); renderCal();
+  toast('🗑️ 削除しました');
+}
+
+// ── CALENDAR ──
+function chgM(d){calM+=d;if(calM>11){calM=0;calY++;}if(calM<0){calM=11;calY--;}renderCal();}
+function renderCal(){
+  document.getElementById('cal-title').textContent=calY+'年'+(calM+1)+'月';
+  var grid=document.getElementById('cal-grid');
+  var h=['日','月','火','水','木','金','土'].map(function(d){return '<div class="cdow">'+d+'</div>';}).join('');
+  var today=new Date();today.setHours(0,0,0,0);
+  var em={};
+  S.records.forEach(function(r){
+    [[r.nextDate,r.carId],[r.date,r.carId]].forEach(function(p){
+      var dt=p[0],cid=p[1];if(!dt)return;
+      var nd=new Date(dt);
+      if(nd.getFullYear()===calY&&nd.getMonth()===calM){var k=nd.getDate();if(!em[k])em[k]=new Set();em[k].add(cid);}
+    });
+  });
+  var first=new Date(calY,calM,1).getDay(),days=new Date(calY,calM+1,0).getDate(),prev=new Date(calY,calM,0).getDate();
+  for(var i=first-1;i>=0;i--) h+='<div class="cday oth">'+(prev-i)+'</div>';
+  for(var d=1;d<=days;d++){
+    var cur=new Date(calY,calM,d);cur.setHours(0,0,0,0);
+    var isT=cur.getTime()===today.getTime(),ev=em[d];
+    var cls='cday'+(isT?' today':'');
+    if(ev){cls+=' hev';if(ev.has(1)&&ev.has(2))cls+=' ev12';else if(ev.has(1))cls+=' ev1';else cls+=' ev2';}
+    h+='<div class="'+cls+'">'+d+'</div>';
+  }
+  grid.innerHTML=h;
+  var el=document.getElementById('evlist');if(!el)return;
+  var evs=[];
+  S.records.forEach(function(r){
+    var car=S.cars[r.carId-1];
+    if(r.nextDate){var nd=new Date(r.nextDate);if(nd.getFullYear()===calY&&nd.getMonth()===calM)evs.push({date:nd,type:'next',car:car,carId:r.carId,km:r.nextKm});}
+    if(r.date){var rd=new Date(r.date);if(rd.getFullYear()===calY&&rd.getMonth()===calM)evs.push({date:rd,type:'done',car:car,carId:r.carId,km:r.km});}
+  });
+  evs.sort(function(a,b){return a.date-b.date;});
+  if(!evs.length){el.innerHTML='<div style="text-align:center;padding:10px;color:var(--t3);font-size:10px;">今月の予定はありません</div>';return;}
+  el.innerHTML=evs.map(function(e){
+    return '<div class="evit"><div style="width:7px;height:7px;border-radius:50%;background:'+(e.carId===1?'var(--a1)':'var(--a2)')+';flex-shrink:0;margin-top:3px;"></div>'+
+      '<div><div style="font-size:9px;color:var(--t2);">'+(e.date.getMonth()+1)+'月'+e.date.getDate()+'日</div>'+
+      '<div style="font-size:12px;font-weight:600;">'+e.car.name+'</div>'+
+      '<div style="font-size:10px;color:var(--t3);">'+(e.type==='next'?'🔔 次回交換予定':'✅ 交換済み')+(e.km?' / '+Number(e.km).toLocaleString()+' km':'')+'</div></div></div>';
+  }).join('');
+}
+
+// ── ICS ──
+function doICS(f){
+  var evs=[];
+  S.records.forEach(function(r){
+    if(f!=='all'&&r.carId!==f)return;if(!r.nextDate)return;
+    var car=S.cars[r.carId-1];
+    evs.push({date:r.nextDate.replace(/-/g,''),sum:'🔧 '+car.name+' オイル交換',
+      desc:car.name+'\\n前回:'+(r.km?Number(r.km).toLocaleString()+'km':'')+'\\n次回:'+(r.nextKm?Number(r.nextKm).toLocaleString()+'km':''),loc:r.shop||''});
+  });
+  if(!evs.length){toast('⚠️ 次回予定の記録がありません');return;}
+  var st=new Date().toISOString().replace(/[-:.]/g,'').slice(0,15)+'Z';
+  var ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//OilTrack//JP\r\nCALSCALE:GREGORIAN\r\n';
+  evs.forEach(function(e,i){ics+='BEGIN:VEVENT\r\nUID:ot-'+Date.now()+'-'+i+'@app\r\nDTSTAMP:'+st+'\r\nDTSTART;VALUE=DATE:'+e.date+'\r\nDTEND;VALUE=DATE:'+e.date+'\r\nSUMMARY:'+e.sum+'\r\nDESCRIPTION:'+e.desc+'\r\nLOCATION:'+e.loc+'\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:オイル交換の時期です！\r\nTRIGGER:-P7D\r\nEND:VALARM\r\nEND:VEVENT\r\n';});
+  ics+='END:VCALENDAR';
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
+  a.download='oil-change.ics';a.click();
+  toast('📅 ダウンロードしました');
+}
+
+// ── ELEM BADGE ──
+function updateElemBadge(n, checked){
+  var eb=document.getElementById('eb'+n);
+  if(!eb) return;
+  eb.textContent = checked ? '交換済み' : '未交換';
+  eb.className = 'elem-badge ' + (checked ? 'elem-yes' : 'elem-no');
+}
+
+// ── UTILS ──
+function fmtD(d){if(!d)return'--';var dt=new Date(d);return dt.getFullYear()+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+String(dt.getDate()).padStart(2,'0');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');setTimeout(function(){t.classList.remove('on');},2200);}
+</script>
+</body>
+</html>
