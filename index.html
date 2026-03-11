@@ -764,11 +764,12 @@ function loadCardForm(n){
 }
 function refreshCardForm(n){
   var rec = latestRec(n) || {};
-  var d = S.cars[n-1].formDraft || {};
-  document.getElementById('i'+n+'-date').value     = rec.date        || '';
-  document.getElementById('i'+n+'-km').value       = rec.km          || '';
-  document.getElementById('i'+n+'-nextDate').value = d.nextDate      || '';
-  document.getElementById('i'+n+'-nextKm').value   = d.nextKm        || '';
+  var d   = S.cars[n-1].formDraft || {};
+  document.getElementById('i'+n+'-date').value     = rec.date               || '';
+  document.getElementById('i'+n+'-km').value       = rec.km                 || '';
+  // nextDate・nextKm: formDraftがあればそちら優先、なければレコードから
+  document.getElementById('i'+n+'-nextDate').value = d.nextDate || rec.nextDate || '';
+  document.getElementById('i'+n+'-nextKm').value   = d.nextKm  || rec.nextKm   || '';
   document.getElementById('i'+n+'-oil').value      = d.oil           || '';
   document.getElementById('i'+n+'-elem').checked   = d.elem          || false;
   updateElemBadge(n, d.elem || false);
